@@ -44,15 +44,16 @@
     .task:hover{transform:translateY(-3px);transition:transform .12s}
     .hidden{display:none}
     .muted{color:var(--muted)}
+    .note{font-size:13px;color:var(--muted)}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <div class="logo">ATAL<br>9/E</div>
+      <div class="logo"><img src="logo.png" alt="logo" style="width:56px;height:56px;border-radius:10px;object-fit:cover"></div>
       <div>
         <h1>ATAL 9/E - Haftalık Ödev Panosu</h1>
-        <p class="lead">Haftanın 5 günü için hızlıca ödev ekleyin, düzenleyin ve sınıf arkadaşlarınızla paylaşın. (Veriler tarayıcıya kaydedilir)</p>
+        <p class="lead">Haftanın 5 günü için ödev ekleyin, düzenleyin. Veriler tarayıcıya kaydedilir.</p>
       </div>
     </header>
 
@@ -61,9 +62,8 @@
         <div class="topbar">
           <div class="day-count" id="weekLabel">Pazartesi → Cuma</div>
           <div style="flex:1"></div>
-          <button id="exportBtn" class="small ghost">Yedeği İndir</button>
-          <button id="importBtn" class="small ghost">Yükle</button>
-          <input id="fileIn" type="file" accept="application/json" class="hidden" />
+          <button id="shareBtn" class="small ghost">Paylaş</button>
+          <button id="pasteBtn" class="small ghost">Bağlantıyı Yapıştır</button>
         </div>
 
         <div style="height:14px"></div>
@@ -98,7 +98,7 @@
 
           <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
 
-          <div class="muted" style="font-size:13px">Paylaşmak için yedek (JSON) indirin ve arkadaşlarınıza gönderin.</div>
+          <div class="note">Paylaşmak için "Paylaş" butonuna tıklayın ve çıkan bağlantıyı kopyalayın.</div>
         </div>
       </aside>
     </main>
@@ -112,6 +112,10 @@
 
     // state
     let state = { lists: [[],[],[],[],[]] };
+
+    // helper: utf8-safe base64
+    function encodeState(obj){ try{ return btoa(encodeURIComponent(JSON.stringify(obj))); }catch(e){ return '' } }
+    function decodeState(str){ try{ return JSON.parse(decodeURIComponent(atob(str))); }catch(e){ return null } }
 
     // load
     function load(){
@@ -176,31 +180,59 @@
       state = { lists: [[],[],[],[],[]] }; save(); render();
     }
 
-    // export / import
-    function exportJSON(){
-      const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'atal_9e_homework_backup.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    // share via URL (no download)
+    function generateShareLink(){
+      const encoded = encodeState(state);
+      if(!encoded){ alert('Durum kodlanamadı. Çok büyük olabilir.'); return; }
+      const url = location.origin + location.pathname + '?data=' + encoded;
+      navigator.clipboard.writeText(url).then(()=>{
+        alert('Paylaş linki panoya kopyalandı. Arkadaşlarına gönder!');
+      }).catch(()=>{
+        prompt('Kopyalama başarısız — bağlantıyı manuel kopyalayın:', url);
+      });
     }
-    function importJSON(file){
-      const reader = new FileReader();
-      reader.onload = ()=>{
-        try{ const parsed = JSON.parse(reader.result); if(parsed && Array.isArray(parsed.lists)) { state = parsed; save(); render(); alert('Yedek yüklendi.'); } else alert('Geçersiz dosya.'); }catch(e){alert('Dosya okunamadı.')}
-      }
-      reader.readAsText(file);
+
+    function loadFromLinkParam(){
+      try{
+        const params = new URLSearchParams(location.search);
+        if(params.has('data')){
+          const decoded = decodeState(params.get('data'));
+          if(decoded && Array.isArray(decoded.lists)){
+            state = decoded; save(); render();
+            // remove param from URL to avoid reloading it accidentally
+            if(history && history.replaceState){ history.replaceState(null, '', location.pathname); }
+          }
+        }
+      }catch(e){ console.warn('loadFromLinkParam', e) }
+    }
+
+    function pasteAndLoad(){
+      const link = prompt('Paylaşılmış bağlantıyı buraya yapıştırın:');
+      if(!link) return;
+      try{
+        const u = new URL(link);
+        const p = new URLSearchParams(u.search);
+        if(p.has('data')){
+          const decoded = decodeState(p.get('data'));
+          if(decoded && Array.isArray(decoded.lists)){
+            state = decoded; save(); render(); alert('Bağlantı yüklendi.');
+            return;
+          }
+        }
+        alert('Bağlantıda geçerli veri bulunamadı.');
+      }catch(e){ alert('Geçerli bir bağlantı yapıştırın.'); }
     }
 
     // init
     document.getElementById && (function(){
-      load(); render();
+      load(); loadFromLinkParam(); render();
       document.getElementById('addBtn').addEventListener('click', addTask);
       document.getElementById('clearBtn').addEventListener('click', clearAll);
-      document.getElementById('exportBtn').addEventListener('click', exportJSON);
-      document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('fileIn').click());
-      document.getElementById('fileIn').addEventListener('change', (ev)=>{ if(ev.target.files && ev.target.files[0]) importJSON(ev.target.files[0]); ev.target.value=''; });
+      document.getElementById('shareBtn').addEventListener('click', generateShareLink);
+      document.getElementById('pasteBtn').addEventListener('click', pasteAndLoad);
 
-      // keyboard: Ctrl+S to save snapshot
-      window.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); exportJSON(); } })
+      // keyboard: Ctrl+S to copy share link
+      window.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); generateShareLink(); } })
     })();
   </script>
 </body>
