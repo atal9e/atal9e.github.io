@@ -5,12 +5,18 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ATAL 9/E - Ödev Panosu</title>
   <style>
-    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass: rgba(255,255,255,0.03)}
+    :root{--bg:#0f1724;--card:#0b1220;--accent1:#06b6d4;--accent2:#7c3aed;--muted:#94a3b8;--glass: rgba(255,255,255,0.03)}
     *{box-sizing:border-box}
     body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:linear-gradient(180deg,#071026 0%, #071a2b 60%); color:#e6eef6; -webkit-font-smoothing:antialiased}
     .wrap{max-width:1100px;margin:28px auto;padding:18px}
+
     header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
-    .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#60a5fa);display:flex;align-items:center;justify-content:center;font-weight:700;color:#072033;font-size:18px;box-shadow:0 6px 20px rgba(2,6,23,0.6)}
+
+    /* CSS logo */
+    .css-logo{width:64px;height:64px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:16px;letter-spacing:0.6px;position:relative;background:linear-gradient(135deg,var(--accent1),var(--accent2));box-shadow:0 8px 30px rgba(124,58,237,0.14);overflow:hidden}
+    .css-logo::after{content:'';position:absolute;left:-40%;top:-40%;width:120%;height:120%;background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), transparent 18%);transform:rotate(25deg);opacity:0.9}
+    .css-logo span{position:relative;z-index:2;text-shadow:0 6px 18px rgba(2,6,23,0.6)}
+
     h1{margin:0;font-size:20px}
     p.lead{margin:0;color:var(--muted);font-size:13px}
 
@@ -25,14 +31,13 @@
     .day .list{display:flex;flex-direction:column;gap:8px}
     .task{background:var(--glass);padding:10px;border-radius:10px;color:#dff6fb;font-size:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
     .task .meta{font-size:12px;color:var(--muted)}
-    .controls{display:flex;gap:8px;margin-top:10px}
 
     .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:12px;box-shadow:0 6px 24px rgba(2,6,23,0.6);height:max-content}
     .new{display:flex;gap:8px;flex-direction:column}
     input, textarea, select, button{font-family:inherit}
     input, textarea, select{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px;border-radius:8px;color:inherit}
     textarea{min-height:80px;resize:vertical}
-    button{background:var(--accent);border:none;padding:8px 10px;border-radius:10px;color:#042026;font-weight:600;cursor:pointer}
+    button{background:var(--accent1);border:none;padding:8px 10px;border-radius:10px;color:#042026;font-weight:600;cursor:pointer}
     button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:500}
     .small{font-size:13px;padding:6px 8px;border-radius:8px}
 
@@ -50,10 +55,10 @@
 <body>
   <div class="wrap">
     <header>
-      <div class="logo"><img src="logo.png" alt="logo" style="width:56px;height:56px;border-radius:10px;object-fit:cover"></div>
+      <div class="css-logo"><span>ATAL 9/E</span></div>
       <div>
         <h1>ATAL 9/E - Haftalık Ödev Panosu</h1>
-        <p class="lead">Haftanın 5 günü için ödev ekleyin, düzenleyin. Veriler tarayıcıya kaydedilir.</p>
+        <p class="lead">Haftanın 5 günü için ödev ekleyin, düzenleyin. Veriler tarayıcıya ve paylaşılan sunucuya kaydedilir.</p>
       </div>
     </header>
 
@@ -62,8 +67,7 @@
         <div class="topbar">
           <div class="day-count" id="weekLabel">Pazartesi → Cuma</div>
           <div style="flex:1"></div>
-          <button id="shareBtn" class="small ghost">Paylaş</button>
-          <button id="pasteBtn" class="small ghost">Bağlantıyı Yapıştır</button>
+          <div id="status" class="small ghost">Bağlantı: Yerel</div>
         </div>
 
         <div style="height:14px"></div>
@@ -98,33 +102,53 @@
 
           <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
 
-          <div class="note">Paylaşmak için "Paylaş" butonuna tıklayın ve çıkan bağlantıyı kopyalayın.</div>
+          <div class="note">Eğer sunucu yapılandırılırsa (aşağıda), yapılan değişiklikler sınıfça anında görünür.</div>
         </div>
       </aside>
     </main>
 
-    <footer>Hazırlandı — ATAL 9/E Panosu • Kaydedilen veriler sadece sizin tarayıcınızda saklanır.</footer>
+    <footer>Hazırlandı — ATAL 9/E Panosu • Yerel veriler tarayıcıda saklanır; sunucu etkinse paylaşılan veriler güncellenir.</footer>
   </div>
 
   <script>
     const DAYS = ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma'];
     const STORAGE_KEY = 'atal_9e_homework_v1';
 
+    // --- CONFIG: Eğer paylaşım istiyorsanız buraya Firebase Realtime Database config yapıştırın ---
+    // 1) https://console.firebase.google.com/ -> Yeni proje -> Realtime Database oluşturun (kuralları test için true yapabilirsiniz)
+    // 2) Proje ayarlarından web uygulaması ekleyin ve aşağıdaki firebaseConfig objesini doldurun
+    // 3) Realtime Database URL'sini DATABASE_URL olarak girin (ör: https://your-project-default-rtdb.firebaseio.com)
+
+    const FIREBASE_CONFIG = null; // <-- burayı kendi config'iniz ile değiştirin veya null bırakın
+    /* örnek:
+    const FIREBASE_CONFIG = {
+      apiKey: "...",
+      authDomain: "yourproj.firebaseapp.com",
+      projectId: "yourproj",
+      storageBucket: "yourproj.appspot.com",
+      messagingSenderId: "...",
+      appId: "1:...:web:...",
+      databaseURL: "https://yourproj-default-rtdb.firebaseio.com"
+    }
+    */
+
     // state
     let state = { lists: [[],[],[],[],[]] };
+    const clientId = Math.random().toString(36).slice(2,9);
+    let firebaseAvailable = false;
+    let dbRef = null;
 
-    // helper: utf8-safe base64
-    function encodeState(obj){ try{ return btoa(encodeURIComponent(JSON.stringify(obj))); }catch(e){ return '' } }
-    function decodeState(str){ try{ return JSON.parse(decodeURIComponent(atob(str))); }catch(e){ return null } }
+    // helper: utf8-safe base64 (kullanılmıyor artık, eskiden URL paylaşımı içindi)
+    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
 
-    // load
-    function load(){
+    // local load/save
+    function loadLocal(){
       try{
         const raw = localStorage.getItem(STORAGE_KEY);
         if(raw){ state = JSON.parse(raw); }
       }catch(e){ console.warn('load err', e) }
     }
-    function save(){
+    function saveLocal(){
       try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); document.getElementById('savedNote').textContent='Kaydedildi'; setTimeout(()=>document.getElementById('savedNote').textContent='',900)}catch(e){console.warn(e)}
     }
 
@@ -148,8 +172,6 @@
       })
     }
 
-    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
-
     function addTask(){
       const day = Number(document.getElementById('daySelect').value);
       const subject = document.getElementById('subject').value.trim();
@@ -157,13 +179,13 @@
       if(!subject && !desc){ alert('En az bir başlık veya açıklama girin.'); return }
       state.lists[day].push({ subject, desc });
       document.getElementById('subject').value=''; document.getElementById('desc').value='';
-      save(); render();
+      persistState();
     }
 
     function removeTask(e){
       const day = Number(e.target.dataset.day); const idx = Number(e.target.dataset.idx);
       if(!confirm('Bu ödevi silmek istediğine emin misin?')) return;
-      state.lists[day].splice(idx,1); save(); render();
+      state.lists[day].splice(idx,1); persistState();
     }
 
     function editTask(e){
@@ -172,67 +194,86 @@
       const newSubject = prompt('Konu / Ders', t.subject || '') || '';
       const newDesc = prompt('Açıklama', t.desc || '') || '';
       state.lists[day][idx] = { subject:newSubject.trim(), desc:newDesc.trim() };
-      save(); render();
+      persistState();
     }
 
     function clearAll(){
       if(!confirm('Tüm ödevleri silmek istiyor musun?')) return;
-      state = { lists: [[],[],[],[],[]] }; save(); render();
+      state = { lists: [[],[],[],[],[]] }; persistState();
     }
 
-    // share via URL (no download)
-    function generateShareLink(){
-      const encoded = encodeState(state);
-      if(!encoded){ alert('Durum kodlanamadı. Çok büyük olabilir.'); return; }
-      const url = location.origin + location.pathname + '?data=' + encoded;
-      navigator.clipboard.writeText(url).then(()=>{
-        alert('Paylaş linki panoya kopyalandı. Arkadaşlarına gönder!');
-      }).catch(()=>{
-        prompt('Kopyalama başarısız — bağlantıyı manuel kopyalayın:', url);
-      });
+    // persist: local + optional firebase
+    function persistState(pushToRemote=true){
+      // attach meta
+      state._meta = { lastUpdated: Date.now(), lastWriter: clientId };
+      saveLocal();
+      render();
+      if(firebaseAvailable && pushToRemote){
+        try{
+          dbRef.set(state);
+          document.getElementById('status').textContent = 'Bağlantı: Senkronize edildi';
+        }catch(e){ console.warn(e); document.getElementById('status').textContent = 'Bağlantı: Hata'; }
+      }
     }
 
-    function loadFromLinkParam(){
+    // Firebase setup & listener
+    function initFirebaseAndSync(){
+      if(!FIREBASE_CONFIG) return;
       try{
-        const params = new URLSearchParams(location.search);
-        if(params.has('data')){
-          const decoded = decodeState(params.get('data'));
-          if(decoded && Array.isArray(decoded.lists)){
-            state = decoded; save(); render();
-            // remove param from URL to avoid reloading it accidentally
-            if(history && history.replaceState){ history.replaceState(null, '', location.pathname); }
-          }
-        }
-      }catch(e){ console.warn('loadFromLinkParam', e) }
-    }
+        // load SDK
+        const s1 = document.createElement('script'); s1.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js'; s1.onload = ()=>{
+          const s2 = document.createElement('script'); s2.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js';
+          s2.onload = ()=>{
+            const app = firebase.initializeApp(FIREBASE_CONFIG);
+            const db = firebase.database();
+            const path = '/atal_9e_v1';
+            dbRef = db.ref(path);
+            firebaseAvailable = true;
+            document.getElementById('status').textContent = 'Bağlantı: Sunucuya bağlanıldı';
 
-    function pasteAndLoad(){
-      const link = prompt('Paylaşılmış bağlantıyı buraya yapıştırın:');
-      if(!link) return;
-      try{
-        const u = new URL(link);
-        const p = new URLSearchParams(u.search);
-        if(p.has('data')){
-          const decoded = decodeState(p.get('data'));
-          if(decoded && Array.isArray(decoded.lists)){
-            state = decoded; save(); render(); alert('Bağlantı yüklendi.');
-            return;
-          }
-        }
-        alert('Bağlantıda geçerli veri bulunamadı.');
-      }catch(e){ alert('Geçerli bir bağlantı yapıştırın.'); }
+            // initial pull from server
+            dbRef.once('value').then(snap=>{
+              const val = snap.val();
+              if(val && Array.isArray(val.lists)){
+                // if server is newer than local, take server
+                const serverTime = val._meta && val._meta.lastUpdated ? val._meta.lastUpdated : 0;
+                const localRaw = localStorage.getItem(STORAGE_KEY);
+                const local = localRaw ? JSON.parse(localRaw) : null;
+                const localTime = local && local._meta && local._meta.lastUpdated ? local._meta.lastUpdated : 0;
+                if(serverTime >= localTime){ state = val; saveLocal(); render(); }
+              } else {
+                // send local to server if server empty
+                dbRef.set(state);
+              }
+            }).catch(e=>console.warn(e));
+
+            // listen for remote updates
+            dbRef.on('value', (snap)=>{
+              const val = snap.val();
+              if(!val) return;
+              const meta = val._meta || {};
+              if(meta.lastWriter && meta.lastWriter === clientId) return; // bizim kendi yazdığımızı dinlemede uygulama
+              state = val; saveLocal(); render();
+              document.getElementById('status').textContent = 'Bağlantı: Güncellendi (sunucudan)';
+            });
+          };
+          document.head.appendChild(s2);
+        };
+        document.head.appendChild(s1);
+      }catch(e){ console.warn('firebase init err', e); }
     }
 
     // init
     document.getElementById && (function(){
-      load(); loadFromLinkParam(); render();
+      loadLocal(); render();
       document.getElementById('addBtn').addEventListener('click', addTask);
       document.getElementById('clearBtn').addEventListener('click', clearAll);
-      document.getElementById('shareBtn').addEventListener('click', generateShareLink);
-      document.getElementById('pasteBtn').addEventListener('click', pasteAndLoad);
 
-      // keyboard: Ctrl+S to copy share link
-      window.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); generateShareLink(); } })
+      // attempt firebase
+      initFirebaseAndSync();
+
+      // keyboard: Ctrl+S to save snapshot locally
+      window.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); persistState(false); alert('Kaydedildi (yalnızca yerel).'); } })
     })();
   </script>
 </body>
